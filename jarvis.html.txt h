@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prem AI</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #020617, #0f172a, #1e293b);
+      color: white;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      padding-top: 30px;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .hero h1 {
+      font-size: 42px;
+      margin-bottom: 10px;
+      color: #38bdf8;
+    }
+
+    .hero p {
+      color: #cbd5e1;
+      font-size: 18px;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 25px;
+      padding: 25px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
+
+    button {
+      border: none;
+      padding: 13px 24px;
+      border-radius: 30px;
+      font-size: 16px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #38bdf8, #2563eb);
+      color: white;
+      font-weight: bold;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    #status {
+      text-align: center;
+      color: #e0f2fe;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+
+    .chat-box {
+      display: block;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    #chatMessages {
+      display: block;
+      width: 100%;
+      height: 350px;
+      overflow-y: auto;
+      background: #020617;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 18px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+
+    .msg {
+      margin-bottom: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      line-height: 1.5;
+      max-width: 85%;
+      word-wrap: break-word;
+    }
+
+    .user {
+      background: rgba(56, 189, 248, 0.18);
+      color: #e0f2fe;
+      margin-left: auto;
+      text-align: right;
+    }
+
+    .ai {
+      background: rgba(255, 255, 255, 0.1);
+      color: #f8fafc;
+      margin-right: auto;
+      text-align: left;
+    }
+
+    .chat-input {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 15px;
+      border-radius: 30px;
+      border: none;
+      outline: none;
+      font-size: 16px;
+    }
+
+    .chat-input button {
+      min-width: 100px;
+    }
+
+    .note {
+      text-align: center;
+      color: #94a3b8;
+      margin-top: 12px;
+      font-size: 14px;
+    }
+
+    @media (max-width: 600px) {
+      .hero h1 {
+        font-size: 32px;
+      }
+
+      .chat-input {
+        flex-direction: column;
+      }
+
+      .chat-input button {
+        width: 100%;
+      }
+
+      #chatMessages {
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <div class="hero">
+      <h1>Prem AI Assistant TEST</h1>
+      <p>Talk or type. Prem AI will reply instantly.</p>
+    </div>
+
+    <div class="panel">
+      <div class="controls">
+        <button onclick="startListening()">🎤 Start Mic</button>
+        <button onclick="stopListening()">🛑 Stop Mic</button>
+      </div>
+
+      <p id="status">Mic is off</p>
+
+      <div class="chat-box">
+        <div id="chatMessages">
+          <div class="msg ai">Prem AI: Hello Prem 👋 Ask me anything.</div>
+        </div>
+
+        <div class="chat-input">
+          <input id="userInput" type="text" placeholder="Type your message here..." />
+          <button onclick="sendMessage()">Send</button>
+        </div>
+      </div>
+
+      <p class="note">Keep your backend running: node server.js</p>
+    </div>
+  </div>
+
+<script>
+let recognition = null;
+let isListening = false;
+let isSpeaking = false;
+
+function speak(text) {
+  isSpeaking = true;
+
+  const speech = new SpeechSynthesisUtterance(text);
+  speech.lang = "en-US";
+  speech.rate = 1;
+
+  speech.onend = function () {
+    isSpeaking = false;
+
+    if (isListening) {
+      restartMic();
+    }
+  };
+
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(speech);
+}
+
+function addMessage(type, text) {
+  const chat = document.getElementById("chatMessages");
+
+  const div = document.createElement("div");
+  div.className = "msg " + type;
+  div.innerText = (type === "user" ? "You: " : "Prem AI: ") + text;
+
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function createRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    document.getElementById("status").innerText = "Speech recognition not supported. Use Google Chrome.";
+    return null;
+  }
+
+  const rec = new SpeechRecognition();
+  rec.lang = "en-US";
+  rec.continuous = false;
+  rec.interimResults = false;
+
+  rec.onstart = function () {
+    document.getElementById("status").innerText = "🎧 Listening...";
+  };
+
+  rec.onresult = function (event) {
+    const userText = event.results[0][0].transcript;
+    addMessage("user", userText);
+    sendToAI(userText);
+  };
+
+  rec.onerror = function (event) {
+    document.getElementById("status").innerText = "Mic error: " + event.error;
+  };
+
+  rec.onend = function () {
+    if (isListening && !isSpeaking) {
+      restartMic();
+    }
+  };
+
+  return rec;
+}
+
+function startListening() {
+  isListening = true;
+  recognition = createRecognition();
+
+  if (recognition) {
+    recognition.start();
+  }
+}
+
+function restartMic() {
+  setTimeout(function () {
+    if (isListening && !isSpeaking) {
+      try {
+        recognition = createRecognition();
+        recognition.start();
+      } catch (error) {
+        console.log(error);
+      }
+    }
+  }, 700);
+}
+
+function stopListening() {
+  isListening = false;
+  isSpeaking = false;
+
+  if (recognition) {
+    recognition.stop();
+  }
+
+  window.speechSynthesis.cancel();
+  document.getElementById("status").innerText = "Mic is off";
+}
+
+async function sendMessage() {
+  const input = document.getElementById("userInput");
+  const userText = input.value.trim();
+
+  if (!userText) return;
+
+  addMessage("user", userText);
+  input.value = "";
+
+  await sendToAI(userText);
+}
+
+async function sendToAI(userText) {
+  try {
+    addMessage("ai", "Thinking...");
+
+    const res = await fetch("http://localhost:3000/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ message: userText })
+    });
+
+    const data = await res.json();
+
+    const chat = document.getElementById("chatMessages");
+    chat.lastChild.innerText = "Prem AI: " + data.reply;
+
+    speak(data.reply);
+
+  } catch (error) {
+    addMessage("ai", "Backend not connected. Run node server.js first.");
+  }
+}
+
+document.getElementById("userInput").addEventListener("keydown", function(event) {
+  if (event.key === "Enter") {
+    sendMessage();
+  }
+});
+</script>
+
+</body>
+</html>
