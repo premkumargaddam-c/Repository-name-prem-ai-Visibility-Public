@@ -491,16 +491,13 @@ function quickAsk(text) {
 
 async function sendToAI(text) {
   requestRunning = true;
-  const typing = addMessage("ai typing", "Prem AI is thinking...");
-
-  try {
-    const response = await fetch("https://prem-c0fk.onrender.com/chat")
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ message: text })
-    });
+ const response = await fetch("https://prem-c0fk.onrender.com/chat", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({ message: text })
+});
 
     const data = await response.json();
 
