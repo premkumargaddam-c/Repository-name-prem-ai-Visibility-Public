@@ -491,13 +491,16 @@ function quickAsk(text) {
 
 async function sendToAI(text) {
   requestRunning = true;
- const response = await fetch("https://prem-c0fk.onrender.com/chat", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({ message: text })
-});
+  const typing = addMessage("ai typing", "Prem AI is thinking...");
+
+  try {
+    const response = await fetch("https://prem-c0fk.onrender.com/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ message: text })
+    });
 
     const data = await response.json();
 
@@ -505,8 +508,9 @@ async function sendToAI(text) {
     typing.innerText = data.reply || "No reply received.";
 
   } catch (error) {
+    console.error(error);
     typing.className = "msg ai";
-    typing.innerText = "Backend not connected. Please run node server.js first.";
+    typing.innerText = "Server connection failed. Please wait 20 seconds and try again.";
   }
 
   requestRunning = false;
@@ -546,16 +550,7 @@ function startMic() {
 
   recognition.onerror = function(event) {
     micRunning = false;
-
-    if (event.error === "no-speech") {
-      document.getElementById("micStatus").innerText = "No speech detected. Click mic again.";
-    } else if (event.error === "not-allowed") {
-      document.getElementById("micStatus").innerText = "Mic permission blocked. Allow microphone in Chrome settings.";
-    } else if (event.error === "aborted") {
-      document.getElementById("micStatus").innerText = "Mic stopped. Click mic again.";
-    } else {
-      document.getElementById("micStatus").innerText = "Mic error: " + event.error;
-    }
+    document.getElementById("micStatus").innerText = "Mic error: " + event.error;
   };
 
   recognition.onend = function() {
@@ -575,6 +570,3 @@ document.getElementById("userInput").addEventListener("keydown", function(event)
   }
 });
 </script>
-
-</body>
-</html>
